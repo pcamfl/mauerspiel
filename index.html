@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Das Mauerspiel</title>
+    <style>
+        :root {
+            --bg-color: #e2e8f0;
+            --wall-bg: #f8fafc;
+            --brick-border: #cbd5e1;
+            
+            /* Function Colors */
+            --c-subject: #2563eb; /* Blue */
+            --c-time: #059669;    /* Green */
+            --c-verb: #dc2626;    /* Red */
+            --c-object: #d97706;  /* Amber/Orange */
+            --c-end: #7c3aed;     /* Purple */
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* Prevent body scroll */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header --- */
+        header {
+            background: #1e293b;
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex: 0 0 auto;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            font-weight: normal;
+            margin-left: 10px;
+        }
+
+        /* --- Game Area --- */
+        #game-stage {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 10px;
+            height: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* --- The Wall (Word Source) --- */
+        #wall-container {
+            flex: 1 1 auto;
+            background-color: var(--wall-bg);
+            border: 4px solid #94a3b8;
+            border-radius: 8px;
+            position: relative;
+            overflow-y: auto; /* Internal scroll */
+            padding: 15px;
+            
+            /* Brick Pattern CSS */
+            background-image: 
+                linear-gradient(335deg, rgba(0,0,0,0.03) 23px, transparent 23px),
+                linear-gradient(155deg, rgba(0,0,0,0.03) 23px, transparent 23px),
+                linear-gradient(335deg, rgba(0,0,0,0.03) 23px, transparent 23px),
+                linear-gradient(155deg, rgba(0,0,0,0.03) 23px, transparent 23px);
+            background-size: 58px 58px;
+            background-color: #f1f5f9;
+        }
+
+        #word-wall {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            align-content: flex-start;
+            min-height: 100%;
+        }
+
+        /* --- The Brick (Word Tile) --- */
+        .brick {
+            padding: 10px 14px;
+            border-radius: 4px;
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: grab;
+            user-select: none;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+            transition: transform 0.1s, box-shadow 0.1s;
+            position: relative;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .brick:active {
+            transform: translateY(3px);
+            box-shadow: 0 0 0 rgba(0,0,0,0.2);
+            cursor: grabbing;
+        }
+
+        /* Brick Colors */
+        .type-subject { background-color: var(--c-subject); }
+        .type-time    { background-color: var(--c-time); }
+        .type-verb    { background-color: var(--c-verb); }
+        .type-object  { background-color: var(--c-object); }
+        .type-endverb { background-color: var(--c-end); }
+
+        /* English Translation Tooltip */
+        .brick .hint {
+            display: none;
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #fff;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .brick:hover .hint { display: block; }
+
+        /* --- The Construction Zone (Strip) --- */
+        #construction-zone {
+            flex: 0 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #feedback-area {
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            height: 20px;
+            color: #475569;
+        }
+
+        #sentence-strip {
+            min-height: 70px;
+            border: 3px dashed #cbd5e1;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 8px;
+            flex-wrap: wrap;
+            gap: 8px;
+            transition: all 0.3s ease;
+            background-color: #f8fafc;
+        }
+
+        #sentence-strip.correct { border-color: #10b981; background-color: #ecfdf5; }
+        #sentence-strip.incorrect { border-color: #ef4444; background-color: #fef2f2; animation: shake 0.4s; }
+
+        /* --- Controls --- */
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: filter 0.2s;
+        }
+        
+        button:active { transform: scale(0.98); }
+
+        .btn-check { background-color: #2563eb; color: white; }
+        .btn-check:hover { background-color: #1d4ed8; }
+        
+        .btn-clear { background-color: #94a3b8; color: white; }
+        .btn-clear:hover { background-color: #64748b; }
+
+        /* --- Bank Drawer (Bottom) --- */
+        #bank-drawer {
+            flex: 0 0 auto;
+            max-height: 0;
+            overflow-y: auto;
+            background: #fff;
+            transition: max-height 0.3s ease;
+            border-top: 1px solid #e2e8f0;
+        }
+        #bank-drawer.open { max-height: 150px; padding: 10px; }
+        
+        .bank-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .bank-de { font-weight: bold; color: #1e293b; }
+        .bank-en { color: #64748b; font-style: italic; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            h1 { font-size: 1rem; }
+            .subtitle { display: none; }
+            .brick { padding: 8px 10px; font-size: 0.85rem; }
+            #sentence-strip { min-height: 60px; }
+            button { padding: 10px 16px; font-size: 0.9rem; }
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="display:flex; align-items:baseline">
+            <h1>Das Mauerspiel</h1>
+            <span class="subtitle">German Sentence Builder</span>
+        </div>
+        <div style="font-size:0.8rem; color:#cbd5e1">Verb 2nd Position!</div>
+    </header>
+
+    <div id="game-stage">
+        
+        <!-- THE WORD WALL -->
+        <div id="wall-container">
+            <div id="word-wall">
+                <!-- Javascript will load bricks here -->
+                <p style="color:#999; width:100%; text-align:center;">Loading Bricks...</p>
+            </div>
+        </div>
+
+        <!-- CONSTRUCTION AREA -->
+        <div id="construction-zone">
+            <div id="feedback-area"></div>
+            
+            <div id="sentence-strip" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <!-- Drag words here -->
+            </div>
+
+            <div class="controls">
+                <button class="btn-check" onclick="checkSentence()">Check</button>
+                <button class="btn-clear" onclick="resetStrip()">Clear</button>
+                <button style="background:#f1f5f9; color:#475569" onclick="toggleBank()">Bank</button>
+            </div>
+        </div>
+
+        <!-- HIDDEN BANK -->
+        <div id="bank-drawer">
+            <h4 style="margin:0 0 5px 0; color:#64748b; font-size:0.7rem; text-transform:uppercase;">Collected Sentences</h4>
+            <div id="bank-list"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA ENGINE ---
+        // 'tags' in verbs define allowed subjects: ['1s' (ich), '2s' (du), '3s' (er/sie/es), '1p' (wir), '2p' (ihr), '3p' (sie/pl)]
+        
+        const vocabulary = [
+            // --- TIME (Green) ---
+            { text: "Gestern", eng: "Yesterday", type: "time", group: "past" },
+            { text: "Morgen", eng: "Tomorrow", type: "time", group: "future" },
+            { text: "Heute", eng: "Today", type: "time", group: "present" },
+            { text: "Am Wochenende", eng: "At the weekend", type: "time", group: "general" },
+            { text: "Nächstes Jahr", eng: "Next year", type: "time", group: "future" },
+            { text: "Manchmal", eng: "Sometimes", type: "time", group: "general" },
+            { text: "Oft", eng: "Often", type: "time", group: "general" },
+            { text: "Ab und zu", eng: "Now and again", type: "time", group: "general" },
+            { text: "Jeden Tag", eng: "Every day", type: "time", group: "general" },
+            { text: "Im Sommer", eng: "In summer", type: "time", group: "general" },
+
+            // --- SUBJECTS (Blue) ---
+            { text: "ich", eng: "I", type: "subject", person: "1s" },
+            { text: "du", eng: "you (sing)", type: "subject", person: "2s" },
+            { text: "er", eng: "he", type: "subject", person: "3s" },
+            
+            // UPDATED: 'sie' now accepts BOTH 3rd singular (she) and 3rd plural (they)
+            { text: "sie", eng: "she/they", type: "subject", person: ["3s", "3p"] },
+            
+            { text: "es", eng: "it", type: "subject", person: "3s" },
+            { text: "wir", eng: "we", type: "subject", person: "1p" },
+            { text: "meine Eltern", eng: "my parents", type: "subject", person: "3p" },
+            { text: "meine Freunde", eng: "my friends", type: "subject", person: "3p" },
+            { text: "der Mann", eng: "the man", type: "subject", person: "3s" },
+            { text: "die Frau", eng: "the woman", type: "subject", person: "3s" },
+            { text: "mein Bruder", eng: "my brother", type: "subject", person: "3s" },
+
+            // --- VERB 1 (Red) - Conjugated ---
+            
+            // HABEN (Auxiliary & Main)
+            { text: "habe", eng: "have", type: "verb", sub: "h-aux", allowed: ["1s"] },
+            { text: "hast", eng: "have", type: "verb", sub: "h-aux", allowed: ["2s"] },
+            { text: "hat", eng: "has", type: "verb", sub: "h-aux", allowed: ["3s"] },
+            { text: "haben", eng: "have", type: "verb", sub: "h-aux", allowed: ["1p", "3p"] },
+
+            // SEIN (Auxiliary & Main)
+            { text: "bin", eng: "am", type: "verb", sub: "s-aux", allowed: ["1s"] },
+            { text: "bist", eng: "are", type: "verb", sub: "s-aux", allowed: ["2s"] },
+            { text: "ist", eng: "is", type: "verb", sub: "s-aux", allowed: ["3s"] },
+            { text: "sind", eng: "are", type: "verb", sub: "s-aux", allowed: ["1p", "3p"] },
+
+            // MODALS (Require Infinitive)
+            { text: "muss", eng: "must", type: "verb", sub: "modal", allowed: ["1s", "3s"] },
+            { text: "musst", eng: "must", type: "verb", sub: "modal", allowed: ["2s"] },
+            { text: "müssen", eng: "must", type: "verb", sub: "modal", allowed: ["1p", "3p"] },
+            { text: "will", eng: "want to", type: "verb", sub: "modal", allowed: ["1s", "3s"] },
+            { text: "wollen", eng: "want to", type: "verb", sub: "modal", allowed: ["1p", "3p"] },
+            { text: "kann", eng: "can", type: "verb", sub: "modal", allowed: ["1s", "3s"] },
+            { text: "können", eng: "can", type: "verb", sub: "modal", allowed: ["1p", "3p"] },
+
+            // WERDEN (Future - Requires Infinitive)
+            { text: "werde", eng: "will", type: "verb", sub: "future", allowed: ["1s"] },
+            { text: "wird", eng: "will", type: "verb", sub: "future", allowed: ["3s"] },
+            { text: "werden", eng: "will", type: "verb", sub: "future", allowed: ["1p", "3p"] },
+
+            // SIMPLE PRESENT (No end verb required usually, or separable prefix)
+            { text: "wohne", eng: "live", type: "verb", sub: "present", allowed: ["1s"] },
+            { text: "wohnt", eng: "lives", type: "verb", sub: "present", allowed: ["3s"] },
+            { text: "wohnen", eng: "live", type: "verb", sub: "present", allowed: ["1p", "3p"] },
+            { text: "spiele", eng: "play", type: "verb", sub: "present", allowed: ["1s"] },
+            { text: "spielt", eng: "plays", type: "verb", sub: "present", allowed: ["3s"] },
+            { text: "spielen", eng: "play", type: "verb", sub: "present", allowed: ["1p", "3p"] },
+            { text: "gehe", eng: "go", type: "verb", sub: "present", allowed: ["1s"] },
+            { text: "geht", eng: "goes", type: "verb", sub: "present", allowed: ["3s"] },
+            { text: "gehen", eng: "go", type: "verb", sub: "present", allowed: ["1p", "3p"] },
+
+            // --- OBJECTS / CHUNKS (Orange) ---
+            { text: "Fußball", eng: "football", type: "object" },
+            { text: "Tennis", eng: "tennis", type: "object" },
+            { text: "Klavier", eng: "piano", type: "object" },
+            { text: "Hausaufgaben", eng: "homework", type: "object" },
+            { text: "nach Berlin", eng: "to Berlin", type: "object" },
+            { text: "ins Kino", eng: "to the cinema", type: "object" },
+            { text: "in die Schule", eng: "to school", type: "object" },
+            { text: "im Park", eng: "in the park", type: "object" },
+            { text: "in der Stadt", eng: "in town", type: "object" },
+            { text: "zu Hause", eng: "at home", type: "object" },
+            { text: "Musik", eng: "music", type: "object" },
+            { text: "eine Pizza", eng: "a pizza", type: "object" },
+            { text: "einen Film", eng: "a film", type: "object" },
+            { text: "Wasser", eng: "water", type: "object" },
+            { text: "Kleidung", eng: "clothes", type: "object" },
+            { text: "mit Freunden", eng: "with friends", type: "object" },
+            { text: "mit dem Bus", eng: "by bus", type: "object" },
+            { text: "gern", eng: "gladly/likes to", type: "object" },
+            { text: "nicht", eng: "not", type: "object" },
+
+            // --- END VERBS (Purple) ---
+            
+            // Participles (ge- ... -t/en) for HABEN
+            { text: "gemacht", eng: "done/made", type: "endverb", sub: "part-h" },
+            { text: "gespielt", eng: "played", type: "endverb", sub: "part-h" },
+            { text: "gegessen", eng: "eaten", type: "endverb", sub: "part-h" },
+            { text: "getrunken", eng: "drunk", type: "endverb", sub: "part-h" },
+            { text: "gekauft", eng: "bought", type: "endverb", sub: "part-h" },
+            { text: "gesehen", eng: "seen", type: "endverb", sub: "part-h" },
+            { text: "gelernt", eng: "learnt", type: "endverb", sub: "part-h" },
+            { text: "gehört", eng: "heard", type: "endverb", sub: "part-h" },
+            { text: "geschlafen", eng: "slept", type: "endverb", sub: "part-h" },
+
+            // Participles (Movement) for SEIN
+            { text: "gegangen", eng: "gone", type: "endverb", sub: "part-s" },
+            { text: "gefahren", eng: "travelled", type: "endverb", sub: "part-s" },
+            { text: "geflogen", eng: "flown", type: "endverb", sub: "part-s" },
+            { text: "geblieben", eng: "stayed", type: "endverb", sub: "part-s" },
+            { text: "geschwommen", eng: "swum", type: "endverb", sub: "part-s" },
+            { text: "gewesen", eng: "been", type: "endverb", sub: "part-s" },
+
+            // Infinitives (-en) for MODALS / FUTURE
+            { text: "gehen", eng: "go", type: "endverb", sub: "inf" },
+            { text: "spielen", eng: "play", type: "endverb", sub: "inf" },
+            { text: "machen", eng: "do", type: "endverb", sub: "inf" },
+            { text: "essen", eng: "eat", type: "endverb", sub: "inf" },
+            { text: "trinken", eng: "drink", type: "endverb", sub: "inf" },
+            { text: "wohnen", eng: "live", type: "endverb", sub: "inf" },
+            { text: "bleiben", eng: "stay", type: "endverb", sub: "inf" },
+            { text: "sehen", eng: "see", type: "endverb", sub: "inf" },
+            { text: "besuchen", eng: "visit", type: "endverb", sub: "inf" },
+            { text: "lernen", eng: "learn", type: "endverb", sub: "inf" }
+        ];
+
+        // --- INIT LOGIC ---
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            initGame();
+        });
+
+        const wordWall = document.getElementById('word-wall');
+        const sentenceStrip = document.getElementById('sentence-strip');
+        const feedback = document.getElementById('feedback-area');
+        
+        let draggedItem = null;
+
+        function initGame() {
+            wordWall.innerHTML = '';
+            vocabulary.sort(() => Math.random() - 0.5);
+
+            vocabulary.forEach((word) => {
+                const el = document.createElement('div');
+                el.classList.add('brick', `type-${word.type}`);
+                el.textContent = word.text;
+                el.draggable = true;
+                
+                // Attach Data
+                el.dataset.type = word.type;
+                el.dataset.eng = word.eng;
+                el.dataset.text = word.text; // Store text for logic lookup
+                
+                if(word.sub) el.dataset.sub = word.sub;
+                
+                // Use JSON.stringify for complex types (arrays) to ensure data integrity
+                if(word.person) el.dataset.person = JSON.stringify(word.person);
+                if(word.allowed) el.dataset.allowed = JSON.stringify(word.allowed);
+
+                const hint = document.createElement('span');
+                hint.classList.add('hint');
+                hint.textContent = word.eng;
+                el.appendChild(hint);
+
+                addDragEvents(el);
+                wordWall.appendChild(el);
+            });
+        }
+
+        function addDragEvents(el) {
+            el.addEventListener('dragstart', function(e) {
+                draggedItem = this;
+                setTimeout(() => this.style.opacity = '0.5', 0);
+            });
+            el.addEventListener('dragend', function() {
+                draggedItem = null;
+                this.style.opacity = '1';
+                resetValidation();
+            });
+            el.addEventListener('click', function(e) {
+                if (this.parentNode.id === 'word-wall') {
+                    sentenceStrip.appendChild(this);
+                } else {
+                    wordWall.appendChild(this);
+                }
+                resetValidation();
+            });
+        }
+
+        function allowDrop(e) { e.preventDefault(); }
+
+        function drop(e) {
+            e.preventDefault();
+            if (draggedItem) {
+                if (e.target.id === 'sentence-strip') {
+                    sentenceStrip.appendChild(draggedItem);
+                } else if (e.target.closest('#sentence-strip')) {
+                    sentenceStrip.insertBefore(draggedItem, e.target.closest('.brick'));
+                }
+            }
+        }
+        
+        document.getElementById('wall-container').addEventListener('dragover', allowDrop);
+        document.getElementById('wall-container').addEventListener('drop', function(e) {
+            e.preventDefault();
+            if(draggedItem) {
+                wordWall.appendChild(draggedItem);
+            }
+        });
+
+        // --- VALIDATION ENGINE ---
+        
+        // Helper: Check if a given word text exists in vocabulary as a valid conjugated verb for this subject
+        // Supports subjectPerson being a single string or an array (e.g., ["3s", "3p"])
+        function canBeVerb(wordText, subjectPersonOrList) {
+            const subjArray = Array.isArray(subjectPersonOrList) ? subjectPersonOrList : [subjectPersonOrList];
+            
+            // Find ALL entries in vocab with this text that are verbs
+            const matches = vocabulary.filter(v => v.text === wordText && v.type === 'verb');
+            
+            // Check if any match allows ANY of the subject persons
+            return matches.some(v => v.allowed && v.allowed.some(p => subjArray.includes(p)));
+        }
+
+        // Helper: Check if a given word text exists as an infinitive in vocabulary
+        function canBeInfinitive(wordText) {
+             return vocabulary.some(v => v.text === wordText && v.sub === 'inf');
+        }
+
+        // Helper: Check if a given word text exists as a specific participle
+        function canBeParticiple(wordText, requiredType) {
+             return vocabulary.some(v => v.text === wordText && v.sub === requiredType);
+        }
+
+        function checkSentence() {
+            const tiles = Array.from(sentenceStrip.children);
+            
+            if (tiles.length < 3) {
+                reject("Sentence too short! (Min 3 words)");
+                return;
+            }
+
+            const words = tiles.map(t => ({
+                text: t.firstChild.textContent,
+                type: t.dataset.type,
+                sub: t.dataset.sub,
+                // Parse JSON data for person/allowed
+                person: t.dataset.person ? JSON.parse(t.dataset.person) : null,
+                allowed: t.dataset.allowed ? JSON.parse(t.dataset.allowed) : null,
+                eng: t.dataset.eng
+            }));
+
+            // 1. V2 RULE: The word in position 2 must be valid as a verb
+            const pos2Word = words[1];
+            
+            // Determine Subject Position
+            const pos1 = words[0].type;
+            const pos3 = words[2].type;
+            let subject = null;
+
+            if (pos1 === 'subject') {
+                subject = words[0];
+            } else if (pos1 === 'time' || pos1 === 'object') {
+                if (pos3 !== 'subject') {
+                    reject("After starting with Time/Object, position 3 must be the Subject!");
+                    return;
+                }
+                subject = words[2];
+            } else {
+                reject("Sentence must start with a Subject, Time, or Object.");
+                return;
+            }
+
+            // Normalize subject person to array (handles "sie" being ["3s", "3p"])
+            const subjPersons = Array.isArray(subject.person) ? subject.person : [subject.person];
+
+            // Now check if Position 2 is a valid verb for any of these subject personas
+            if (!canBeVerb(pos2Word.text, subjPersons)) {
+                reject(`'${pos2Word.text}' is not a valid conjugated verb for '${subject.text}' here.`);
+                return;
+            }
+
+            // To get the properties of the *intended* verb (e.g. is it 'modal' or 'future'?), 
+            // we look up the definition that matches BOTH the text and the subject agreement
+            const verbDef = vocabulary.find(v => 
+                v.text === pos2Word.text && 
+                v.type === 'verb' && 
+                v.allowed.some(p => subjPersons.includes(p))
+            );
+            
+            // 4. BRACKET / TENSE CHECK
+            const lastWord = words[words.length - 1];
+            
+            // Case A: Present Tense (Simple) -> No end verb needed
+            if (verbDef.sub === 'present') {
+                if (lastWord.type === 'endverb' && lastWord !== pos2Word) { 
+                    reject(`'${verbDef.text}' is present tense. Remove '${lastWord.text}'.`);
+                    return;
+                }
+            }
+            // Case B: Compound Tenses -> MUST have end verb
+            else {
+                if (lastWord === pos2Word) {
+                     reject(`'${verbDef.text}' needs a second verb at the very end.`);
+                     return;
+                }
+                
+                // Allow flexible types at the end too
+                if (verbDef.sub === 'h-aux') {
+                    if (!canBeParticiple(lastWord.text, 'part-h')) {
+                        reject(`'haben' needs a standard participle (ge...t/en).`); return;
+                    }
+                }
+                else if (verbDef.sub === 's-aux') {
+                    if (!canBeParticiple(lastWord.text, 'part-s')) {
+                        reject(`'sein/bin/ist' needs a movement participle.`); return;
+                    }
+                }
+                else if (verbDef.sub === 'future' || verbDef.sub === 'modal') {
+                    if (!canBeInfinitive(lastWord.text)) {
+                        reject(`'${verbDef.text}' needs an Infinitive (ending in -en).`); return;
+                    }
+                }
+            }
+
+            accept(words);
+        }
+
+        function reject(msg) {
+            sentenceStrip.className = 'incorrect';
+            feedback.style.color = '#dc2626';
+            feedback.textContent = msg;
+            setTimeout(() => sentenceStrip.classList.remove('incorrect'), 1500);
+        }
+
+        function accept(words) {
+            sentenceStrip.className = 'correct';
+            feedback.style.color = '#059669';
+            feedback.textContent = "Das ist richtig! Well done.";
+            
+            const de = words.map(w => w.text).join(' ');
+            const en = words.map(w => w.eng).join(' ');
+            
+            const div = document.createElement('div');
+            div.className = 'bank-entry';
+            div.innerHTML = `<span class="bank-de">${de}</span><span class="bank-en">${en}</span>`;
+            document.getElementById('bank-list').prepend(div);
+            document.getElementById('bank-drawer').classList.add('open');
+            
+            setTimeout(() => {
+                resetStrip();
+            }, 2000);
+        }
+
+        function resetStrip() {
+            const tiles = Array.from(sentenceStrip.children);
+            tiles.forEach(t => wordWall.appendChild(t));
+            resetValidation();
+        }
+
+        function resetValidation() {
+            sentenceStrip.className = '';
+            feedback.textContent = '';
+        }
+
+        function toggleBank() {
+            document.getElementById('bank-drawer').classList.toggle('open');
+        }
+
+    </script>
+</body>
+</html>
