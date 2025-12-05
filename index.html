@@ -26,12 +26,12 @@
             margin: 0;
             padding: 0;
             
-            /* FIX 1: Use dvh (Dynamic Viewport Height) to account for mobile browser bars */
+            /* DYNAMIC HEIGHT: Fixes mobile browser bottom bar issues */
             height: 100vh;
             height: 100dvh; 
             
             width: 100vw;
-            overflow: hidden; /* Prevent body scroll */
+            overflow: hidden; 
             display: flex;
             flex-direction: column;
         }
@@ -46,12 +46,13 @@
             align-items: center;
             flex: 0 0 auto;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            padding-top: max(10px, env(safe-area-inset-top)); /* Safe area for notch */
+            padding-top: max(10px, env(safe-area-inset-top));
+            z-index: 20;
         }
 
         h1 {
             margin: 0;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             letter-spacing: 1px;
             text-transform: uppercase;
             font-weight: 800;
@@ -75,25 +76,22 @@
             max-width: 1200px;
             margin: 0 auto;
             width: 100%;
-            
-            /* FIX 2: Ensure bottom doesn't get cut off on scrollable viewports */
+            overflow: hidden; /* Contains the scrollable wall */
             padding-bottom: max(10px, env(safe-area-inset-bottom));
         }
 
         /* --- The Wall (Word Source) --- */
         #wall-container {
-            flex: 1 1 auto; /* Grow to fill space */
+            flex: 1 1 auto; /* This element grows/shrinks to fill space */
             background-color: var(--wall-bg);
-            border: 4px solid #94a3b8;
+            border: 2px solid #94a3b8;
             border-radius: 8px;
             position: relative;
-            overflow-y: auto; /* Internal scroll */
-            padding: 15px;
+            overflow-y: auto; /* Internal scroll only here */
+            padding: 10px;
             
-            /* Brick Pattern CSS */
+            /* Brick Pattern */
             background-image: 
-                linear-gradient(335deg, rgba(0,0,0,0.03) 23px, transparent 23px),
-                linear-gradient(155deg, rgba(0,0,0,0.03) 23px, transparent 23px),
                 linear-gradient(335deg, rgba(0,0,0,0.03) 23px, transparent 23px),
                 linear-gradient(155deg, rgba(0,0,0,0.03) 23px, transparent 23px);
             background-size: 58px 58px;
@@ -103,32 +101,32 @@
         #word-wall {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
             justify-content: center;
             align-content: flex-start;
-            min-height: 100%;
+            padding-bottom: 20px; /* Space for scrolling */
         }
 
         /* --- The Brick (Word Tile) --- */
         .brick {
-            padding: 10px 14px;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border-radius: 6px;
             color: white;
             font-weight: 700;
-            font-size: 0.95rem;
-            cursor: grab;
+            font-size: 0.9rem;
+            cursor: pointer;
             user-select: none;
             box-shadow: 0 3px 0 rgba(0,0,0,0.2);
             transition: transform 0.1s, box-shadow 0.1s;
             position: relative;
             text-shadow: 0 1px 1px rgba(0,0,0,0.3);
             border: 1px solid rgba(255,255,255,0.2);
+            touch-action: manipulation;
         }
 
         .brick:active {
             transform: translateY(3px);
             box-shadow: 0 0 0 rgba(0,0,0,0.2);
-            cursor: grabbing;
         }
 
         /* Brick Colors */
@@ -138,7 +136,6 @@
         .type-object  { background-color: var(--c-object); }
         .type-endverb { background-color: var(--c-end); }
 
-        /* English Translation Tooltip */
         .brick .hint {
             display: none;
             position: absolute;
@@ -158,37 +155,38 @@
 
         /* --- The Construction Zone (Strip) --- */
         #construction-zone {
-            flex: 0 0 auto; /* Don't shrink */
+            flex: 0 0 auto; /* Never shrink, always visible */
             background: white;
             border-radius: 8px;
             padding: 10px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
             z-index: 10;
         }
 
         #feedback-area {
             text-align: center;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: bold;
-            height: 20px;
+            min-height: 20px;
             color: #475569;
+            padding: 0 5px;
         }
 
         #sentence-strip {
-            min-height: 70px;
-            border: 3px dashed #cbd5e1;
-            border-radius: 6px;
+            min-height: 65px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: flex-start;
             padding: 8px;
             flex-wrap: wrap;
-            gap: 8px;
-            transition: all 0.3s ease;
+            gap: 6px;
             background-color: #f8fafc;
+            transition: background-color 0.3s;
         }
 
         #sentence-strip.correct { border-color: #10b981; background-color: #ecfdf5; }
@@ -202,56 +200,89 @@
         }
 
         button {
-            padding: 12px 24px;
+            padding: 12px 0;
+            width: 100px; /* Fixed width for touch targets */
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 0.95rem;
             cursor: pointer;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            transition: filter 0.2s;
+            transition: opacity 0.2s;
         }
         
-        button:active { transform: scale(0.98); }
+        button:active { opacity: 0.8; transform: scale(0.98); }
 
         .btn-check { background-color: #2563eb; color: white; }
-        .btn-check:hover { background-color: #1d4ed8; }
-        
         .btn-clear { background-color: #94a3b8; color: white; }
-        .btn-clear:hover { background-color: #64748b; }
+        .btn-bank  { background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
 
-        /* --- Bank Drawer (Bottom) --- */
-        #bank-drawer {
-            flex: 0 0 auto;
-            max-height: 0;
-            overflow-y: auto;
-            background: #fff;
-            transition: max-height 0.3s ease;
-            border-top: 1px solid #e2e8f0;
+        /* --- Bank Modal (Overlay) --- */
+        #bank-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 50;
+            backdrop-filter: blur(2px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
-        #bank-drawer.open { max-height: 150px; padding: 10px; }
-        
-        .bank-entry {
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
-            font-size: 0.9rem;
+
+        #bank-modal.open { display: flex; }
+
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 15px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title { font-weight: 800; color: #334155; text-transform: uppercase; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; color: #64748b; padding: 0; width: auto; cursor: pointer; }
+
+        #bank-list {
+            padding: 0 15px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .bank-entry {
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.95rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
         .bank-de { font-weight: bold; color: #1e293b; }
-        .bank-en { color: #64748b; font-style: italic; }
+        .bank-en { color: #64748b; font-style: italic; font-size: 0.85rem; }
+        .empty-bank { padding: 20px; text-align: center; color: #94a3b8; font-style: italic; }
 
-        /* Mobile Adjustments */
+        /* Mobile Optimization */
         @media (max-width: 600px) {
             h1 { font-size: 1rem; }
             .subtitle { display: none; }
-            .brick { padding: 8px 10px; font-size: 0.85rem; }
-            #sentence-strip { min-height: 60px; }
-            button { padding: 10px 16px; font-size: 0.9rem; }
-            
-            /* Extra mobile spacing */
-            #game-stage { gap: 5px; }
+            #wall-container { padding: 8px; }
+            .brick { padding: 8px 10px; font-size: 0.85rem; margin: 2px; }
+            #sentence-strip { min-height: 60px; padding: 5px; }
+            .controls button { padding: 14px 0; font-size: 0.9rem; flex: 1; }
         }
 
         @keyframes shake {
@@ -270,7 +301,7 @@
             <h1>Das Mauerspiel</h1>
             <span class="subtitle">German Sentence Builder</span>
         </div>
-        <div style="font-size:0.8rem; color:#cbd5e1">Verb 2nd Position!</div>
+        <div style="font-size:0.75rem; color:#cbd5e1; font-weight:600">VERB 2nd POSITION</div>
     </header>
 
     <div id="game-stage">
@@ -278,8 +309,7 @@
         <!-- THE WORD WALL -->
         <div id="wall-container">
             <div id="word-wall">
-                <!-- Javascript will load bricks here -->
-                <p style="color:#999; width:100%; text-align:center;">Loading Bricks...</p>
+                <p style="color:#999; width:100%; text-align:center;">Loading...</p>
             </div>
         </div>
 
@@ -294,22 +324,29 @@
             <div class="controls">
                 <button class="btn-check" onclick="checkSentence()">Check</button>
                 <button class="btn-clear" onclick="resetStrip()">Clear</button>
-                <button style="background:#f1f5f9; color:#475569" onclick="toggleBank()">Bank</button>
+                <button class="btn-bank" onclick="toggleBank()">Bank</button>
             </div>
         </div>
+    </div>
 
-        <!-- HIDDEN BANK -->
-        <div id="bank-drawer">
-            <h4 style="margin:0 0 5px 0; color:#64748b; font-size:0.7rem; text-transform:uppercase;">Collected Sentences</h4>
-            <div id="bank-list"></div>
+    <!-- BANK OVERLAY MODAL -->
+    <div id="bank-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Collected Sentences</span>
+                <button class="close-btn" onclick="toggleBank()">&times;</button>
+            </div>
+            <div id="bank-list">
+                <div class="empty-bank">No sentences yet. Start building!</div>
+            </div>
+            <div style="padding:10px; text-align:center; border-top:1px solid #e2e8f0">
+                <button class="btn-check" style="width:100%" onclick="toggleBank()">Close</button>
+            </div>
         </div>
-
     </div>
 
     <script>
         // --- DATA ENGINE ---
-        // 'tags' in verbs define allowed subjects: ['1s' (ich), '2s' (du), '3s' (er/sie/es), '1p' (wir), '2p' (ihr), '3p' (sie/pl)]
-        
         const vocabulary = [
             // --- TIME (Green) ---
             { text: "Gestern", eng: "Yesterday", type: "time", group: "past" },
@@ -327,10 +364,7 @@
             { text: "ich", eng: "I", type: "subject", person: "1s" },
             { text: "du", eng: "you (sing)", type: "subject", person: "2s" },
             { text: "er", eng: "he", type: "subject", person: "3s" },
-            
-            // UPDATED: 'sie' now accepts BOTH 3rd singular (she) and 3rd plural (they)
             { text: "sie", eng: "she/they", type: "subject", person: ["3s", "3p"] },
-            
             { text: "es", eng: "it", type: "subject", person: "3s" },
             { text: "wir", eng: "we", type: "subject", person: "1p" },
             { text: "meine Eltern", eng: "my parents", type: "subject", person: "3p" },
@@ -340,20 +374,16 @@
             { text: "mein Bruder", eng: "my brother", type: "subject", person: "3s" },
 
             // --- VERB 1 (Red) - Conjugated ---
-            
-            // HABEN (Auxiliary & Main)
             { text: "habe", eng: "have", type: "verb", sub: "h-aux", allowed: ["1s"] },
             { text: "hast", eng: "have", type: "verb", sub: "h-aux", allowed: ["2s"] },
             { text: "hat", eng: "has", type: "verb", sub: "h-aux", allowed: ["3s"] },
             { text: "haben", eng: "have", type: "verb", sub: "h-aux", allowed: ["1p", "3p"] },
 
-            // SEIN (Auxiliary & Main)
             { text: "bin", eng: "am", type: "verb", sub: "s-aux", allowed: ["1s"] },
             { text: "bist", eng: "are", type: "verb", sub: "s-aux", allowed: ["2s"] },
             { text: "ist", eng: "is", type: "verb", sub: "s-aux", allowed: ["3s"] },
             { text: "sind", eng: "are", type: "verb", sub: "s-aux", allowed: ["1p", "3p"] },
 
-            // MODALS (Require Infinitive)
             { text: "muss", eng: "must", type: "verb", sub: "modal", allowed: ["1s", "3s"] },
             { text: "musst", eng: "must", type: "verb", sub: "modal", allowed: ["2s"] },
             { text: "müssen", eng: "must", type: "verb", sub: "modal", allowed: ["1p", "3p"] },
@@ -362,12 +392,10 @@
             { text: "kann", eng: "can", type: "verb", sub: "modal", allowed: ["1s", "3s"] },
             { text: "können", eng: "can", type: "verb", sub: "modal", allowed: ["1p", "3p"] },
 
-            // WERDEN (Future - Requires Infinitive)
             { text: "werde", eng: "will", type: "verb", sub: "future", allowed: ["1s"] },
             { text: "wird", eng: "will", type: "verb", sub: "future", allowed: ["3s"] },
             { text: "werden", eng: "will", type: "verb", sub: "future", allowed: ["1p", "3p"] },
 
-            // SIMPLE PRESENT (No end verb required usually, or separable prefix)
             { text: "wohne", eng: "live", type: "verb", sub: "present", allowed: ["1s"] },
             { text: "wohnt", eng: "lives", type: "verb", sub: "present", allowed: ["3s"] },
             { text: "wohnen", eng: "live", type: "verb", sub: "present", allowed: ["1p", "3p"] },
@@ -400,8 +428,6 @@
             { text: "nicht", eng: "not", type: "object" },
 
             // --- END VERBS (Purple) ---
-            
-            // Participles (ge- ... -t/en) for HABEN
             { text: "gemacht", eng: "done/made", type: "endverb", sub: "part-h" },
             { text: "gespielt", eng: "played", type: "endverb", sub: "part-h" },
             { text: "gegessen", eng: "eaten", type: "endverb", sub: "part-h" },
@@ -412,7 +438,6 @@
             { text: "gehört", eng: "heard", type: "endverb", sub: "part-h" },
             { text: "geschlafen", eng: "slept", type: "endverb", sub: "part-h" },
 
-            // Participles (Movement) for SEIN
             { text: "gegangen", eng: "gone", type: "endverb", sub: "part-s" },
             { text: "gefahren", eng: "travelled", type: "endverb", sub: "part-s" },
             { text: "geflogen", eng: "flown", type: "endverb", sub: "part-s" },
@@ -420,7 +445,6 @@
             { text: "geschwommen", eng: "swum", type: "endverb", sub: "part-s" },
             { text: "gewesen", eng: "been", type: "endverb", sub: "part-s" },
 
-            // Infinitives (-en) for MODALS / FUTURE
             { text: "gehen", eng: "go", type: "endverb", sub: "inf" },
             { text: "spielen", eng: "play", type: "endverb", sub: "inf" },
             { text: "machen", eng: "do", type: "endverb", sub: "inf" },
@@ -433,17 +457,16 @@
             { text: "lernen", eng: "learn", type: "endverb", sub: "inf" }
         ];
 
-        // --- INIT LOGIC ---
+        // --- INIT & UTILS ---
         
-        window.addEventListener('DOMContentLoaded', () => {
-            initGame();
-        });
-
         const wordWall = document.getElementById('word-wall');
         const sentenceStrip = document.getElementById('sentence-strip');
         const feedback = document.getElementById('feedback-area');
+        const bankList = document.getElementById('bank-list');
         
         let draggedItem = null;
+
+        window.addEventListener('DOMContentLoaded', initGame);
 
         function initGame() {
             wordWall.innerHTML = '';
@@ -458,11 +481,8 @@
                 // Attach Data
                 el.dataset.type = word.type;
                 el.dataset.eng = word.eng;
-                el.dataset.text = word.text; // Store text for logic lookup
-                
+                el.dataset.text = word.text;
                 if(word.sub) el.dataset.sub = word.sub;
-                
-                // Use JSON.stringify for complex types (arrays) to ensure data integrity
                 if(word.person) el.dataset.person = JSON.stringify(word.person);
                 if(word.allowed) el.dataset.allowed = JSON.stringify(word.allowed);
 
@@ -486,6 +506,7 @@
                 this.style.opacity = '1';
                 resetValidation();
             });
+            // Tap/Click to move
             el.addEventListener('click', function(e) {
                 if (this.parentNode.id === 'word-wall') {
                     sentenceStrip.appendChild(this);
@@ -517,29 +538,23 @@
             }
         });
 
-        // --- VALIDATION ENGINE ---
+        // --- VALIDATION HELPERS ---
         
-        // Helper: Check if a given word text exists in vocabulary as a valid conjugated verb for this subject
-        // Supports subjectPerson being a single string or an array (e.g., ["3s", "3p"])
         function canBeVerb(wordText, subjectPersonOrList) {
             const subjArray = Array.isArray(subjectPersonOrList) ? subjectPersonOrList : [subjectPersonOrList];
-            
-            // Find ALL entries in vocab with this text that are verbs
             const matches = vocabulary.filter(v => v.text === wordText && v.type === 'verb');
-            
-            // Check if any match allows ANY of the subject persons
             return matches.some(v => v.allowed && v.allowed.some(p => subjArray.includes(p)));
         }
 
-        // Helper: Check if a given word text exists as an infinitive in vocabulary
         function canBeInfinitive(wordText) {
              return vocabulary.some(v => v.text === wordText && v.sub === 'inf');
         }
 
-        // Helper: Check if a given word text exists as a specific participle
         function canBeParticiple(wordText, requiredType) {
              return vocabulary.some(v => v.text === wordText && v.sub === requiredType);
         }
+
+        // --- CORE CHECK ---
 
         function checkSentence() {
             const tiles = Array.from(sentenceStrip.children);
@@ -553,13 +568,12 @@
                 text: t.firstChild.textContent,
                 type: t.dataset.type,
                 sub: t.dataset.sub,
-                // Parse JSON data for person/allowed
                 person: t.dataset.person ? JSON.parse(t.dataset.person) : null,
                 allowed: t.dataset.allowed ? JSON.parse(t.dataset.allowed) : null,
                 eng: t.dataset.eng
             }));
 
-            // 1. V2 RULE: The word in position 2 must be valid as a verb
+            // 1. V2 RULE
             const pos2Word = words[1];
             
             // Determine Subject Position
@@ -576,59 +590,46 @@
                 }
                 subject = words[2];
             } else {
-                reject("Sentence must start with a Subject, Time, or Object.");
+                reject("Start with a Subject, Time, or Object.");
                 return;
             }
 
-            // Normalize subject person to array (handles "sie" being ["3s", "3p"])
+            // Agreement Check
             const subjPersons = Array.isArray(subject.person) ? subject.person : [subject.person];
 
-            // Now check if Position 2 is a valid verb for any of these subject personas
             if (!canBeVerb(pos2Word.text, subjPersons)) {
-                reject(`'${pos2Word.text}' is not a valid conjugated verb for '${subject.text}' here.`);
+                reject(`'${pos2Word.text}' is not valid for '${subject.text}' here.`);
                 return;
             }
 
-            // To get the properties of the *intended* verb (e.g. is it 'modal' or 'future'?), 
-            // we look up the definition that matches BOTH the text and the subject agreement
+            // Lookup Definition
             const verbDef = vocabulary.find(v => 
                 v.text === pos2Word.text && 
                 v.type === 'verb' && 
                 v.allowed.some(p => subjPersons.includes(p))
             );
             
-            // 4. BRACKET / TENSE CHECK
+            // 4. Bracket Check
             const lastWord = words[words.length - 1];
             
-            // Case A: Present Tense (Simple) -> No end verb needed
             if (verbDef.sub === 'present') {
                 if (lastWord.type === 'endverb' && lastWord !== pos2Word) { 
                     reject(`'${verbDef.text}' is present tense. Remove '${lastWord.text}'.`);
                     return;
                 }
-            }
-            // Case B: Compound Tenses -> MUST have end verb
-            else {
+            } else {
                 if (lastWord === pos2Word) {
-                     reject(`'${verbDef.text}' needs a second verb at the very end.`);
+                     reject(`'${verbDef.text}' needs a second verb at the end.`);
                      return;
                 }
-                
-                // Allow flexible types at the end too
-                if (verbDef.sub === 'h-aux') {
-                    if (!canBeParticiple(lastWord.text, 'part-h')) {
-                        reject(`'haben' needs a standard participle (ge...t/en).`); return;
-                    }
+                if (verbDef.sub === 'h-aux' && !canBeParticiple(lastWord.text, 'part-h')) {
+                    reject(`'haben' needs a standard participle (ge...t/en).`); return;
                 }
-                else if (verbDef.sub === 's-aux') {
-                    if (!canBeParticiple(lastWord.text, 'part-s')) {
-                        reject(`'sein/bin/ist' needs a movement participle.`); return;
-                    }
+                else if (verbDef.sub === 's-aux' && !canBeParticiple(lastWord.text, 'part-s')) {
+                    reject(`'sein/bin/ist' needs a movement participle.`); return;
                 }
-                else if (verbDef.sub === 'future' || verbDef.sub === 'modal') {
-                    if (!canBeInfinitive(lastWord.text)) {
-                        reject(`'${verbDef.text}' needs an Infinitive (ending in -en).`); return;
-                    }
+                else if ((verbDef.sub === 'future' || verbDef.sub === 'modal') && !canBeInfinitive(lastWord.text)) {
+                    reject(`'${verbDef.text}' needs an Infinitive (-en).`); return;
                 }
             }
 
@@ -639,7 +640,7 @@
             sentenceStrip.className = 'incorrect';
             feedback.style.color = '#dc2626';
             feedback.textContent = msg;
-            setTimeout(() => sentenceStrip.classList.remove('incorrect'), 1500);
+            setTimeout(() => sentenceStrip.classList.remove('incorrect'), 2000);
         }
 
         function accept(words) {
@@ -650,15 +651,22 @@
             const de = words.map(w => w.text).join(' ');
             const en = words.map(w => w.eng).join(' ');
             
+            // Check for empty state
+            if(bankList.querySelector('.empty-bank')) {
+                bankList.innerHTML = '';
+            }
+
             const div = document.createElement('div');
             div.className = 'bank-entry';
             div.innerHTML = `<span class="bank-de">${de}</span><span class="bank-en">${en}</span>`;
-            document.getElementById('bank-list').prepend(div);
-            document.getElementById('bank-drawer').classList.add('open');
+            bankList.prepend(div);
+            
+            // Open Modal
+            document.getElementById('bank-modal').classList.add('open');
             
             setTimeout(() => {
                 resetStrip();
-            }, 2000);
+            }, 1000);
         }
 
         function resetStrip() {
@@ -673,7 +681,7 @@
         }
 
         function toggleBank() {
-            document.getElementById('bank-drawer').classList.toggle('open');
+            document.getElementById('bank-modal').classList.toggle('open');
         }
 
     </script>
