@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Das Mauerspiel</title>
     <style>
         :root {
@@ -25,7 +25,11 @@
             background-color: var(--bg-color);
             margin: 0;
             padding: 0;
+            
+            /* FIX 1: Use dvh (Dynamic Viewport Height) to account for mobile browser bars */
             height: 100vh;
+            height: 100dvh; 
+            
             width: 100vw;
             overflow: hidden; /* Prevent body scroll */
             display: flex;
@@ -42,6 +46,7 @@
             align-items: center;
             flex: 0 0 auto;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            padding-top: max(10px, env(safe-area-inset-top)); /* Safe area for notch */
         }
 
         h1 {
@@ -70,11 +75,14 @@
             max-width: 1200px;
             margin: 0 auto;
             width: 100%;
+            
+            /* FIX 2: Ensure bottom doesn't get cut off on scrollable viewports */
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
         }
 
         /* --- The Wall (Word Source) --- */
         #wall-container {
-            flex: 1 1 auto;
+            flex: 1 1 auto; /* Grow to fill space */
             background-color: var(--wall-bg);
             border: 4px solid #94a3b8;
             border-radius: 8px;
@@ -150,7 +158,7 @@
 
         /* --- The Construction Zone (Strip) --- */
         #construction-zone {
-            flex: 0 0 auto;
+            flex: 0 0 auto; /* Don't shrink */
             background: white;
             border-radius: 8px;
             padding: 10px;
@@ -158,6 +166,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            z-index: 10;
         }
 
         #feedback-area {
@@ -240,6 +249,9 @@
             .brick { padding: 8px 10px; font-size: 0.85rem; }
             #sentence-strip { min-height: 60px; }
             button { padding: 10px 16px; font-size: 0.9rem; }
+            
+            /* Extra mobile spacing */
+            #game-stage { gap: 5px; }
         }
 
         @keyframes shake {
